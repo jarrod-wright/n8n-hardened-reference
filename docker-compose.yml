@@ -3,26 +3,30 @@
 #
 # Production self-host of n8n in QUEUE MODE (main + worker) behind Caddy with
 # automatic TLS, backed by PostgreSQL + Redis. Only Caddy is published to the
-# host; n8n / Postgres / Redis are reachable only on internal Docker networks.
+# host; n8n / Postgres / Redis are reachable only on internal Docker networks,
+# and the data tier (Postgres/Redis) has NO internet egress.
+#
+# Requires Docker Compose v2 (deploy.resources.limits are honoured by `up`).
 #
 # Hardening layered in this file:
 #   - Least-privilege containers: cap_drop ALL + minimal cap_add per image.
-#   - no-new-privileges on every service; read-only rootfs where safe (caddy).
-#   - Non-root PostgreSQL app user (see postgres/init-data.sh); n8n never
-#     connects as the DB superuser.
-#   - Per-service memory limits + bounded json-file logging (no disk fill).
-#   - Secrets via Docker file-secrets (encryption key + both DB passwords).
+#   - no-new-privileges everywhere; read-only rootfs where safe (caddy).
+#   - Non-root PostgreSQL app user (postgres/init-data.sh); n8n never connects
+#     as the DB superuser.
+#   - Data-tier network isolation: Postgres/Redis on an internal-only network.
+#   - Node file access sandboxed to /files, not the n8n home.
+#   - Fail-closed required secrets: deploy aborts if they are unset.
+#   - Per-service memory limits + bounded json-file logging.
 #
 # Task runners: on n8n 2.x these are ENABLED BY DEFAULT (internal mode). For the
 # official checklist's "external mode in prod", layer docker-compose.runners.yml
-# (added next increment) - see SECURITY.md.
+# (make deploy-runners) - see SECURITY.md.
 #
 # Threat model & rationale: README.md + SECURITY.md.
 #
-# Image pinning: tags are for READABILITY and are MUTABLE. The real immutability
-# control is the sha256 digest - resolve + pin before prod (`make pin-digests`).
-# n8n is pinned to a specific stable release; bump deliberately after reading the
-# release notes, never to a floating :latest / :stable.
+# Image pinning: tags are for READABILITY and are MUTABLE. Resolve + pin the
+# sha256 digest before prod (`make pin-digests`). n8n is pinned to a specific
+# stable release; bump deliberately, never to a floating :latest / :stable.
 # =============================================================================
 
 x-logging: &default-logging
@@ -39,16 +43,16 @@ x-n8n-env: &n8n-env
   DB_POSTGRESDB_DATABASE: ${POSTGRES_DB:-n8n}
   DB_POSTGRESDB_USER: ${POSTGRES_NON_ROOT_USER:-n8n}
   DB_POSTGRESDB_PASSWORD_FILE: /run/secrets/postgres_non_root_password
-  # --- Queue mode (Redis / Bull) ---
+  # --- Queue mode (Redis / Bull). REDIS_PASSWORD is required (fail-closed). ---
   EXECUTIONS_MODE: queue
   QUEUE_BULL_REDIS_HOST: redis
   QUEUE_BULL_REDIS_PORT: "6379"
-  QUEUE_BULL_REDIS_PASSWORD: ${REDIS_PASSWORD}
+  QUEUE_BULL_REDIS_PASSWORD: "${REDIS_PASSWORD:?REDIS_PASSWORD must be set in .env}"
   QUEUE_HEALTH_CHECK_ACTIVE: "true"
   # --- Encryption key (persisted secret; NO recovery if lost - back it up) ---
   N8N_ENCRYPTION_KEY_FILE: /run/secrets/n8n_encryption_key
-  # --- Public URL / proxy awareness (behind Caddy) ---
-  N8N_HOST: ${N8N_HOST}
+  # --- Public URL / proxy awareness (behind Caddy). N8N_HOST required. ---
+  N8N_HOST: "${N8N_HOST:?N8N_HOST must be set in .env}"
   N8N_PORT: "5678"
   N8N_PROTOCOL: https
   N8N_EDITOR_BASE_URL: https://${N8N_HOST}/
@@ -60,7 +64,8 @@ x-n8n-env: &n8n-env
   # --- Security hardening (official n8n production checklist) ---
   N8N_SECURE_COOKIE: "true"
   N8N_BLOCK_ENV_ACCESS_IN_NODE: "true"
-  N8N_RESTRICT_FILE_ACCESS_TO: /home/node/.n8n
+  # Node file access is sandboxed to a dedicated empty dir, NOT the n8n home.
+  N8N_RESTRICT_FILE_ACCESS_TO: /files
   N8N_BLOCK_FILE_ACCESS_TO_N8N_FILES: "true"
   N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS: "true"
   EXECUTIONS_DATA_PRUNE: "true"
@@ -90,8 +95,8 @@ services:
       - caddy_data:/data
       - caddy_config:/config
     environment:
-      N8N_HOST: ${N8N_HOST}
-      ACME_EMAIL: ${ACME_EMAIL}
+      N8N_HOST: "${N8N_HOST:?N8N_HOST must be set in .env}"
+      ACME_EMAIL: "${ACME_EMAIL:?ACME_EMAIL must be set in .env}"
     read_only: true
     tmpfs:
       - /tmp
@@ -124,12 +129,13 @@ services:
       - n8n_encryption_key
     volumes:
       - n8n_data:/home/node/.n8n
+      - n8n_files:/files
     cap_drop:
       - ALL
     security_opt:
       - no-new-privileges:true
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:5678/healthz || exit 1"]
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://127.0.0.1:5678/healthz || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -142,6 +148,7 @@ services:
     networks:
       - proxy
       - backend
+      - data
 
   n8n-worker:
     image: docker.n8n.io/n8nio/n8n:2.29.10
@@ -157,6 +164,7 @@ services:
       - n8n_encryption_key
     volumes:
       - n8n_data:/home/node/.n8n
+      - n8n_files:/files
     cap_drop:
       - ALL
     security_opt:
@@ -168,6 +176,7 @@ services:
           memory: 640M
     networks:
       - backend
+      - data
 
   postgres:
     image: postgres:16-alpine
@@ -206,14 +215,15 @@ services:
         limits:
           memory: 512M
     networks:
-      - backend
+      - data
 
   redis:
     image: redis:7-alpine
     restart: unless-stopped
-    command: ["redis-server", "--requirepass", "${REDIS_PASSWORD}", "--save", "60", "1", "--appendonly", "yes"]
+    command: ["redis-server", "--requirepass", "${REDIS_PASSWORD:?REDIS_PASSWORD must be set in .env}", "--save", "60", "1", "--appendonly", "yes"]
     environment:
-      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      # REDISCLI_AUTH lets the healthcheck authenticate without the password on argv.
+      REDISCLI_AUTH: "${REDIS_PASSWORD:?REDIS_PASSWORD must be set in .env}"
     volumes:
       - redis_data:/data
     cap_drop:
@@ -227,7 +237,7 @@ services:
     security_opt:
       - no-new-privileges:true
     healthcheck:
-      test: ["CMD-SHELL", "redis-cli -a \"$$REDIS_PASSWORD\" ping | grep -q PONG"]
+      test: ["CMD-SHELL", "redis-cli ping | grep -q PONG"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -238,10 +248,11 @@ services:
         limits:
           memory: 256M
     networks:
-      - backend
+      - data
 
 volumes:
   n8n_data:
+  n8n_files:
   postgres_data:
   redis_data:
   caddy_data:
@@ -250,6 +261,8 @@ volumes:
 networks:
   proxy:
   backend:
+  data:
+    internal: true      # Postgres + Redis: no internet egress
 
 secrets:
   postgres_password:

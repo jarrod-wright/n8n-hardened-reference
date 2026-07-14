@@ -15,7 +15,7 @@
 #   - n8nio/runners image version MUST match the n8nio/n8n version (2.29.10).
 #   - In queue mode, each broker (main + each worker) needs its OWN runner sidecar.
 #   - The broker listens on port 5679; runners connect via N8N_RUNNERS_TASK_BROKER_URI.
-#   - Set N8N_RUNNERS_AUTH_TOKEN in .env (shared secret between brokers + runners).
+#   - N8N_RUNNERS_AUTH_TOKEN is required (fail-closed) - shared secret.
 #   - Confirm an arm64 manifest for n8nio/runners:2.29.10 if deploying on Arm.
 # =============================================================================
 
@@ -25,14 +25,14 @@ services:
       N8N_RUNNERS_ENABLED: "true"
       N8N_RUNNERS_MODE: external
       N8N_RUNNERS_BROKER_LISTEN_ADDRESS: 0.0.0.0
-      N8N_RUNNERS_AUTH_TOKEN: ${N8N_RUNNERS_AUTH_TOKEN}
+      N8N_RUNNERS_AUTH_TOKEN: "${N8N_RUNNERS_AUTH_TOKEN:?N8N_RUNNERS_AUTH_TOKEN must be set in .env}"
 
   n8n-worker:
     environment:
       N8N_RUNNERS_ENABLED: "true"
       N8N_RUNNERS_MODE: external
       N8N_RUNNERS_BROKER_LISTEN_ADDRESS: 0.0.0.0
-      N8N_RUNNERS_AUTH_TOKEN: ${N8N_RUNNERS_AUTH_TOKEN}
+      N8N_RUNNERS_AUTH_TOKEN: "${N8N_RUNNERS_AUTH_TOKEN:?N8N_RUNNERS_AUTH_TOKEN must be set in .env}"
 
   n8n-runner:
     image: n8nio/runners:2.29.10
@@ -41,7 +41,7 @@ services:
       n8n:
         condition: service_healthy
     environment:
-      N8N_RUNNERS_AUTH_TOKEN: ${N8N_RUNNERS_AUTH_TOKEN}
+      N8N_RUNNERS_AUTH_TOKEN: "${N8N_RUNNERS_AUTH_TOKEN:?N8N_RUNNERS_AUTH_TOKEN must be set in .env}"
       N8N_RUNNERS_TASK_BROKER_URI: http://n8n:5679
     cap_drop:
       - ALL
@@ -66,7 +66,7 @@ services:
       n8n-worker:
         condition: service_started
     environment:
-      N8N_RUNNERS_AUTH_TOKEN: ${N8N_RUNNERS_AUTH_TOKEN}
+      N8N_RUNNERS_AUTH_TOKEN: "${N8N_RUNNERS_AUTH_TOKEN:?N8N_RUNNERS_AUTH_TOKEN must be set in .env}"
       N8N_RUNNERS_TASK_BROKER_URI: http://n8n-worker:5679
     cap_drop:
       - ALL
