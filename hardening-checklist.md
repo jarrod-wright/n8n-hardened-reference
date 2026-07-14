@@ -8,7 +8,7 @@ The official n8n production hardening checklist, mapped to exactly where each it
 |---|---|
 | `N8N_ENCRYPTION_KEY` set before first boot, via the `_FILE` variant, and backed up | `docker-compose.yml` (`N8N_ENCRYPTION_KEY_FILE`), `scripts/init-secrets.sh`, backup guidance in SECURITY.md |
 | `N8N_BLOCK_ENV_ACCESS_IN_NODE=true` | `docker-compose.yml` |
-| `N8N_RESTRICT_FILE_ACCESS_TO` set, and `N8N_BLOCK_FILE_ACCESS_TO_N8N_FILES=true` | `docker-compose.yml` |
+| `N8N_RESTRICT_FILE_ACCESS_TO` a dedicated sandbox, and `N8N_BLOCK_FILE_ACCESS_TO_N8N_FILES=true` | `docker-compose.yml` (`/files` volume) |
 | `N8N_SECURE_COOKIE=true` | `docker-compose.yml` |
 | `N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS=true` | `docker-compose.yml` |
 | `EXECUTIONS_DATA_PRUNE=true` with `EXECUTIONS_DATA_MAX_AGE` | `docker-compose.yml` |
@@ -24,8 +24,10 @@ The official n8n production hardening checklist, mapped to exactly where each it
 | Item | Applied in |
 |---|---|
 | Reverse proxy terminates TLS; the editor is not exposed directly | Caddy; n8n publishes no host port |
+| Data tier isolated with no internet egress | `data` network (`internal: true`) carrying PostgreSQL and Redis |
 | Least-privilege containers | `cap_drop: ALL` plus minimal `cap_add`, `no-new-privileges` on every service |
-| Non-root database user for the application | `postgres/init-data.sh` |
+| Non-root database user for the application | `postgres/init-data.sh` (created via bound psql variables) |
+| Fail-closed required secrets | `${VAR:?}` guards on `N8N_HOST`, `ACME_EMAIL`, `REDIS_PASSWORD`, `N8N_RUNNERS_AUTH_TOKEN` |
 | Immutable image references | `make pin-digests` (resolve tags to `sha256` digests) |
 | Bounded logging and resource limits | per-service `logging` and memory limits |
 
