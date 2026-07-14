@@ -1,0 +1,33 @@
+{
+	# ACME account email for Let's Encrypt / ZeroSSL certificate issuance.
+	email {$ACME_EMAIL}
+
+	# Pre-production: use the Let's Encrypt STAGING CA to avoid rate limits while
+	# testing. Uncomment for test runs, then REMOVE for real certificates.
+	# acme_ca https://acme-staging-v02.api.letsencrypt.org/directory
+}
+
+# Single site: the n8n editor + webhooks, terminated with automatic HTTPS.
+{$N8N_HOST} {
+	encode zstd gzip
+
+	reverse_proxy n8n:5678 {
+		flush_interval -1        # stream n8n push/SSE responses without buffering
+	}
+
+	header {
+		# HSTS: 2 years, subdomains, preload-eligible.
+		Strict-Transport-Security "max-age=63072000; includeSubDomains; preload"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "SAMEORIGIN"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Permissions-Policy "geolocation=(), microphone=(), camera=()"
+		# Do not advertise the reverse-proxy software.
+		-Server
+	}
+
+	# Request-size guard — tune to your largest expected workflow/binary import.
+	request_body {
+		max_size 50MB
+	}
+}
