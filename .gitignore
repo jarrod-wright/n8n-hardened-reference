@@ -1,0 +1,28 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Secrets & environment — NEVER commit these.
+# ─────────────────────────────────────────────────────────────────────────────
+.env
+.env.*
+!.env.example
+secrets/
+*.key
+*.pem
+*.crt
+
+# Runtime / data
+caddy_data/
+caddy_config/
+
+# Backups
+backups/
+*.sql
+*.dump
+*.tar.gz
+
+# OS / editor cruft
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+.idea/
+.vscode/
