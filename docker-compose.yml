@@ -1,35 +1,51 @@
-# ─────────────────────────────────────────────────────────────────────────────────
-# n8n-hardened-reference — docker-compose.yml
+# =============================================================================
+# n8n-hardened-reference - docker-compose.yml
 #
-# Production self-host of n8n in QUEUE MODE (main + worker), behind Caddy with
-# automatic TLS, backed by PostgreSQL + Redis. Nothing but Caddy is published to
-# the host; n8n / Postgres / Redis are reachable only on internal Docker networks.
+# Production self-host of n8n in QUEUE MODE (main + worker) behind Caddy with
+# automatic TLS, backed by PostgreSQL + Redis. Only Caddy is published to the
+# host; n8n / Postgres / Redis are reachable only on internal Docker networks.
 #
-# Threat model & rationale: see README.md and SECURITY.md.
+# Hardening layered in this file:
+#   - Least-privilege containers: cap_drop ALL + minimal cap_add per image.
+#   - no-new-privileges on every service; read-only rootfs where safe (caddy).
+#   - Non-root PostgreSQL app user (see postgres/init-data.sh); n8n never
+#     connects as the DB superuser.
+#   - Per-service memory limits + bounded json-file logging (no disk fill).
+#   - Secrets via Docker file-secrets (encryption key + both DB passwords).
 #
-# ── Image pinning ────────────────────────────────────────────────────────────
-# Tags below are pinned to a line for READABILITY. Tags are MUTABLE; the real
-# immutability control is the sha256 digest. Before production, resolve each
-# image to a digest and pin it (repo:tag@sha256:...). `make pin-digests` helps.
-# n8n is pinned to a specific stable release — bump deliberately after reading
-# the release notes, never to a floating :latest / :stable.
-# ─────────────────────────────────────────────────────────────────────────────
+# Task runners: on n8n 2.x these are ENABLED BY DEFAULT (internal mode). For the
+# official checklist's "external mode in prod", layer docker-compose.runners.yml
+# (added next increment) - see SECURITY.md.
+#
+# Threat model & rationale: README.md + SECURITY.md.
+#
+# Image pinning: tags are for READABILITY and are MUTABLE. The real immutability
+# control is the sha256 digest - resolve + pin before prod (`make pin-digests`).
+# n8n is pinned to a specific stable release; bump deliberately after reading the
+# release notes, never to a floating :latest / :stable.
+# =============================================================================
+
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
 
 x-n8n-env: &n8n-env
-  # --- Database (PostgreSQL) ---
+  # --- Database (PostgreSQL) - n8n connects as the NON-ROOT app user ---
   DB_TYPE: postgresdb
   DB_POSTGRESDB_HOST: postgres
   DB_POSTGRESDB_PORT: "5432"
   DB_POSTGRESDB_DATABASE: ${POSTGRES_DB:-n8n}
-  DB_POSTGRESDB_USER: ${POSTGRES_USER:-n8n}
-  DB_POSTGRESDB_PASSWORD_FILE: /run/secrets/postgres_password
+  DB_POSTGRESDB_USER: ${POSTGRES_NON_ROOT_USER:-n8n}
+  DB_POSTGRESDB_PASSWORD_FILE: /run/secrets/postgres_non_root_password
   # --- Queue mode (Redis / Bull) ---
   EXECUTIONS_MODE: queue
   QUEUE_BULL_REDIS_HOST: redis
   QUEUE_BULL_REDIS_PORT: "6379"
   QUEUE_BULL_REDIS_PASSWORD: ${REDIS_PASSWORD}
   QUEUE_HEALTH_CHECK_ACTIVE: "true"
-  # --- Encryption key (persisted secret; NO recovery if lost — back it up) ---
+  # --- Encryption key (persisted secret; NO recovery if lost - back it up) ---
   N8N_ENCRYPTION_KEY_FILE: /run/secrets/n8n_encryption_key
   # --- Public URL / proxy awareness (behind Caddy) ---
   N8N_HOST: ${N8N_HOST}
@@ -41,7 +57,7 @@ x-n8n-env: &n8n-env
   # --- Timezone ---
   GENERIC_TIMEZONE: ${GENERIC_TIMEZONE:-Etc/UTC}
   TZ: ${GENERIC_TIMEZONE:-Etc/UTC}
-  # ── Security hardening (official n8n production checklist) ──────────────────
+  # --- Security hardening (official n8n production checklist) ---
   N8N_SECURE_COOKIE: "true"
   N8N_BLOCK_ENV_ACCESS_IN_NODE: "true"
   N8N_RESTRICT_FILE_ACCESS_TO: /home/node/.n8n
@@ -56,10 +72,7 @@ x-n8n-env: &n8n-env
   N8N_HIRING_BANNER_ENABLED: "false"
   # Disable high-risk built-in nodes (arbitrary command / SSH execution).
   NODES_EXCLUDE: '["n8n-nodes-base.executeCommand","n8n-nodes-base.ssh"]'
-  # Task runners: isolated code execution. Enabled here in the default (internal)
-  # mode; T2 hardening switches this to EXTERNAL mode with a dedicated runner.
-  N8N_RUNNERS_ENABLED: "true"
-  # NOTE: N8N_BASIC_AUTH_* is intentionally ABSENT — removed in n8n v1.0
+  # NOTE: N8N_BASIC_AUTH_* is intentionally ABSENT - removed in n8n v1.0
   # (replaced by user management + RBAC). Do not reintroduce it.
 
 services:
@@ -79,8 +92,20 @@ services:
     environment:
       N8N_HOST: ${N8N_HOST}
       ACME_EMAIL: ${ACME_EMAIL}
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE      # bind privileged ports 80/443
     security_opt:
       - no-new-privileges:true
+    logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          memory: 128M
     networks:
       - proxy
 
@@ -95,10 +120,12 @@ services:
     environment:
       <<: *n8n-env
     secrets:
-      - postgres_password
+      - postgres_non_root_password
       - n8n_encryption_key
     volumes:
       - n8n_data:/home/node/.n8n
+    cap_drop:
+      - ALL
     security_opt:
       - no-new-privileges:true
     healthcheck:
@@ -107,6 +134,11 @@ services:
       timeout: 10s
       retries: 5
       start_period: 30s
+    logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          memory: 768M
     networks:
       - proxy
       - backend
@@ -121,12 +153,19 @@ services:
     environment:
       <<: *n8n-env
     secrets:
-      - postgres_password
+      - postgres_non_root_password
       - n8n_encryption_key
     volumes:
       - n8n_data:/home/node/.n8n
+    cap_drop:
+      - ALL
     security_opt:
       - no-new-privileges:true
+    logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          memory: 640M
     networks:
       - backend
 
@@ -134,21 +173,38 @@ services:
     image: postgres:16-alpine
     restart: unless-stopped
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:-n8n}
-      POSTGRES_USER: ${POSTGRES_USER:-n8n}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}          # superuser (init + healthcheck only)
       POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+      POSTGRES_DB: ${POSTGRES_DB:-n8n}
+      POSTGRES_NON_ROOT_USER: ${POSTGRES_NON_ROOT_USER:-n8n}
+      POSTGRES_NON_ROOT_PASSWORD_FILE: /run/secrets/postgres_non_root_password
     secrets:
       - postgres_password
+      - postgres_non_root_password
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./postgres/init-data.sh:/docker-entrypoint-initdb.d/init-data.sh:ro
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - DAC_OVERRIDE
+      - FOWNER
+      - SETGID
+      - SETUID
     security_opt:
       - no-new-privileges:true
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-n8n} -d ${POSTGRES_DB:-n8n}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-n8n}"]
       interval: 10s
       timeout: 5s
       retries: 5
       start_period: 10s
+    logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          memory: 512M
     networks:
       - backend
 
@@ -160,6 +216,14 @@ services:
       REDIS_PASSWORD: ${REDIS_PASSWORD}
     volumes:
       - redis_data:/data
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - DAC_OVERRIDE
+      - FOWNER
+      - SETGID
+      - SETUID
     security_opt:
       - no-new-privileges:true
     healthcheck:
@@ -168,6 +232,11 @@ services:
       timeout: 5s
       retries: 5
       start_period: 5s
+    logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          memory: 256M
     networks:
       - backend
 
@@ -185,5 +254,7 @@ networks:
 secrets:
   postgres_password:
     file: ./secrets/postgres_password.txt
+  postgres_non_root_password:
+    file: ./secrets/postgres_non_root_password.txt
   n8n_encryption_key:
     file: ./secrets/n8n_encryption_key.txt
