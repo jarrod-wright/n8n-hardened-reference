@@ -1,12 +1,25 @@
 # n8n-hardened-reference
 
-A production-grade, security-hardened reference deployment of self-hosted n8n. Caddy automatic TLS, queue mode, PostgreSQL and Redis, one command to stand it up. It is meant to be read as much as run: the value is the threat model and the delivery method, not the tool itself.
+I build production automation infrastructure for clients who need their n8n instance treated like a real system, not a docker-compose tutorial. This repo is the reference deployment I bring to that work: security-hardened, one command to stand up, and — more importantly — a documented method for moving a client's live workflows onto it without downtime.
+
+The stack is the artifact. The delivery method is the actual service.
 
 > Status: hardened reference and template. Read the threat model and [SECURITY.md](SECURITY.md), then adapt it to your host and your workflows. Do not run it blind.
 
-## Why this exists
+## What I deliver
 
-Self-hosting n8n places an automation engine, holding credentials to everything it touches, directly on the public internet. Many community compose files expose the editor on port 5678, run every service as root on one flat network, and skip the environment flags that actually change the security posture. This repo takes the opposite default: a small, legible stack where the hardened choice is the built-in one, and the reasoning is written down next to it.
+Standing up a hardened n8n stack is one skill. Moving a client's live automations onto it without breaking anything is a different one — and it's the part that actually matters to a business depending on those workflows.
+
+- **Inventory and node-equivalence.** Every existing workflow, trigger and credential is mapped to its n8n equivalent before anything is touched.
+- **Parallel run.** The new stack runs alongside the existing automation. Workflows are validated against real inputs, with production side effects duplicated or disabled — never a cold cutover.
+- **Credential-repoint cutover.** Integrations are switched to the new instance in a defined order, each one verified, with the previous instance kept warm.
+- **Verification and rollback.** Health, TLS and hardening checks are scripted and re-runnable. Rollback is a repoint back to the warm instance, not a rebuild.
+
+This repo is what "the new stack" looks like when I do that work.
+
+## Why the hardening matters
+
+Self-hosting n8n places an automation engine — holding credentials to everything it touches — directly on the public internet. Many community compose files expose the editor on port 5678, run every service as root on one flat network, and skip the environment flags that actually change the security posture. This repo takes the opposite default: a small, legible stack where the hardened choice is the built-in one, and the reasoning is written down next to it.
 
 ## Threat model
 
@@ -20,7 +33,7 @@ What an internet-facing n8n exposes, and how this deployment answers each item.
 | Container breakout or privilege escalation | Every service runs with `cap_drop: ALL` plus a minimal capability set, `no-new-privileges`, and a read-only root filesystem where the image allows it. |
 | Database compromise blast radius | n8n connects as a non-root PostgreSQL user, never the superuser. |
 | Secret leakage | The encryption key and both database passwords are Docker file-secrets, never baked into the image or the environment. `.env` and `secrets/` are gitignored. |
-| Credential theft via node file or env access | Environment access from nodes is blocked; node file access is restricted to the n8n data directory. |
+| Credential theft via node file or env access | Environment access from nodes is blocked; node file access is restricted to a dedicated sandbox directory. |
 | Disk exhaustion from logs or execution history | Bounded json-file logging and automatic execution-data pruning. |
 | Lost encryption key means lost credentials | Key handling and backup are called out explicitly, in the deploy flow and in SECURITY.md. |
 
@@ -72,24 +85,14 @@ Queue mode splits the UI and webhook process (main) from execution (worker), coo
 
 `make deploy` runs `make init-secrets` for you, which generates the encryption key and database passwords into `secrets/`. Back up `secrets/n8n_encryption_key.txt` immediately and keep it somewhere safe. If it is lost, every stored credential becomes undecryptable.
 
+Every image is pinned to a `sha256` digest in the shipped compose files, so a moved tag can't silently change what you deploy. Re-run `make pin-digests` if you bump a version and want to re-pin.
+
 ## Hardening
 
 The security posture is documented, not implied.
 
 - [hardening-checklist.md](hardening-checklist.md): the official n8n production checklist, mapped to exactly where each item is applied in this repo.
 - [SECURITY.md](SECURITY.md): the reasoning behind the container, network, secret and task-runner choices, and how to report an issue.
-- `make pin-digests`: resolve every image tag to an immutable `sha256` digest before production, so a moved tag cannot change what you run.
-
-## Delivery methodology
-
-Standing up a hardened stack is one skill. Moving a client's live automations onto it without downtime is a different one, and it is the point of this section.
-
-- Inventory and node-equivalence. Every existing workflow, trigger and credential is mapped to its n8n equivalent before anything is touched.
-- Parallel run. The new stack runs alongside the existing automation. Workflows are validated against real inputs, with production side effects duplicated or disabled, never cut over cold.
-- Credential-repoint cutover. Integrations are switched to the new instance in a defined order, each one verified, with the previous instance kept warm.
-- Verification and rollback. Health, TLS and hardening checks are scripted and re-runnable. Rollback is a repoint back to the warm instance, not a rebuild.
-
-The stack is the artifact. The method is why it lands without incident.
 
 ## Backup and restore
 
@@ -102,7 +105,7 @@ Restores require the same encryption key that was in place when the backup was t
 
 ## What this is, and is not
 
-- It is a hardened, legible starting point that you adapt to your host and your workflows.
+- It is a hardened, legible starting point that I use in client delivery, and that you're welcome to adapt to your own host and workflows.
 - It is not a managed service, a one-click appliance, or a reason to skip reading SECURITY.md.
 
 ## License
@@ -111,4 +114,4 @@ MIT. See [LICENSE](LICENSE).
 
 ---
 
-Part of my work on self-hosted automation and AI infrastructure.
+I build and deliver self-hosted automation infrastructure for clients. If that's what you need: **jarrod@jwmkwild.com**
