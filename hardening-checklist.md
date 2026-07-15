@@ -28,7 +28,7 @@ The official n8n production hardening checklist, mapped to exactly where each it
 | Least-privilege containers | `cap_drop: ALL` plus minimal `cap_add`, `no-new-privileges` on every service |
 | Non-root database user for the application | `postgres/init-data.sh` (created via bound psql variables) |
 | Fail-closed required secrets | `${VAR:?}` guards on `N8N_HOST`, `ACME_EMAIL`, `REDIS_PASSWORD`, `N8N_RUNNERS_AUTH_TOKEN` |
-| Immutable image references | `make pin-digests` (resolve tags to `sha256` digests) |
+| Immutable image references | Every image pinned to a `sha256` digest in the shipped compose files (`make pin-digests` to re-resolve on a deliberate version bump) |
 | Bounded logging and resource limits | per-service `logging` and memory limits |
 
 ## Host level (your responsibility)
