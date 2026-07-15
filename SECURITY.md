@@ -54,6 +54,7 @@ The PostgreSQL superuser is used only for cluster initialisation and the healthc
 
 - The n8n encryption key and both database passwords are Docker file-secrets, mounted under `/run/secrets/` and referenced through n8n's `*_FILE` variables. They are never in the image, the compose environment, or the repository.
 - Secret files are written without a trailing newline, so the value read by n8n and PostgreSQL matches exactly.
+- Secret files are generated at `0444` (readable by the non-root container user that consumes them) inside a `700` `secrets/` directory, so the host stays locked down while each container can still read the individual file it needs.
 - `.env` and everything under `secrets/` are gitignored from the first commit.
 - The n8n encryption key is unrecoverable. If it is lost, stored credentials cannot be decrypted. Back it up separately from the database, at the moment you generate it.
 - Redis authenticates with a password even though it publishes no host port. The healthcheck reads the password from `REDISCLI_AUTH` rather than passing it on the command line. The `--requirepass` value still appears in the Redis container's process arguments; this is visible only inside that container, on the internal-only data network.
@@ -70,7 +71,7 @@ The runner image version must match the n8n image version. The sidecars connect 
 
 ## Image pinning
 
-Image tags in the compose files are pinned to a specific line for readability, but tags are mutable. Before production, run `make pin-digests` and replace each `repo:tag` with `repo:tag@sha256:...`, so that a moved tag cannot silently change what you deploy.
+Every image in the shipped compose files is pinned to a `sha256` digest, resolved via `make pin-digests` against the exact images validated in a clean-room deploy, so a moved tag cannot silently change what you run. Re-run `make pin-digests` and re-pin whenever you deliberately bump a version.
 
 ## Host responsibilities
 
