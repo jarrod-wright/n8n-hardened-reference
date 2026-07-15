@@ -17,6 +17,10 @@
 #   - The broker listens on port 5679; runners connect via N8N_RUNNERS_TASK_BROKER_URI.
 #   - N8N_RUNNERS_AUTH_TOKEN is required (fail-closed) - shared secret.
 #   - Confirm an arm64 manifest for n8nio/runners:2.29.10 if deploying on Arm.
+#
+# Image pinning: n8nio/runners is pinned to the sha256 digest validated by a
+# clean-room `make deploy-runners` run (see `make pin-digests`); must be bumped
+# in lockstep with the n8n image pin above.
 # =============================================================================
 
 services:
@@ -35,7 +39,7 @@ services:
       N8N_RUNNERS_AUTH_TOKEN: "${N8N_RUNNERS_AUTH_TOKEN:?N8N_RUNNERS_AUTH_TOKEN must be set in .env}"
 
   n8n-runner:
-    image: n8nio/runners:2.29.10
+    image: n8nio/runners:2.29.10@sha256:d519d92fc90116897671a7d84aae87b160b92fce0b4b02fc65f2221bbd827ef6
     restart: unless-stopped
     depends_on:
       n8n:
@@ -60,7 +64,7 @@ services:
       - backend
 
   n8n-worker-runner:
-    image: n8nio/runners:2.29.10
+    image: n8nio/runners:2.29.10@sha256:d519d92fc90116897671a7d84aae87b160b92fce0b4b02fc65f2221bbd827ef6
     restart: unless-stopped
     depends_on:
       n8n-worker:
