@@ -24,9 +24,10 @@
 #
 # Threat model & rationale: README.md + SECURITY.md.
 #
-# Image pinning: tags are for READABILITY and are MUTABLE. Resolve + pin the
-# sha256 digest before prod (`make pin-digests`). n8n is pinned to a specific
-# stable release; bump deliberately, never to a floating :latest / :stable.
+# Image pinning: images below are pinned to the sha256 digest validated by a
+# clean-room `make deploy-runners` run (see `make pin-digests`). Tags are kept
+# alongside the digest for readability; the digest is authoritative. Bump
+# deliberately, never to a floating :latest / :stable.
 # =============================================================================
 
 x-logging: &default-logging
@@ -82,7 +83,7 @@ x-n8n-env: &n8n-env
 
 services:
   caddy:
-    image: caddy:2-alpine
+    image: caddy:2-alpine@sha256:5f5c8640aae01df9654968d946d8f1a56c497f1dd5c5cda4cf95ab7c14d58648
     restart: unless-stopped
     depends_on:
       - n8n
@@ -115,7 +116,7 @@ services:
       - proxy
 
   n8n:
-    image: docker.n8n.io/n8nio/n8n:2.29.10
+    image: docker.n8n.io/n8nio/n8n:2.29.10@sha256:9cb60554716a0ab11a966e79ed65171e1bbf00b6d262ba12aa119bba22eb6000
     restart: unless-stopped
     depends_on:
       postgres:
@@ -151,7 +152,7 @@ services:
       - data
 
   n8n-worker:
-    image: docker.n8n.io/n8nio/n8n:2.29.10
+    image: docker.n8n.io/n8nio/n8n:2.29.10@sha256:9cb60554716a0ab11a966e79ed65171e1bbf00b6d262ba12aa119bba22eb6000
     restart: unless-stopped
     command: worker
     depends_on:
@@ -179,7 +180,7 @@ services:
       - data
 
   postgres:
-    image: postgres:16-alpine
+    image: postgres:16-alpine@sha256:57c72fd2a128e416c7fcc499958864df5301e940bca0a56f58fddf30ffc07777
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}          # superuser (init + healthcheck only)
@@ -218,7 +219,7 @@ services:
       - data
 
   redis:
-    image: redis:7-alpine
+    image: redis:7-alpine@sha256:6ab0b6e7381779332f97b8ca76193e45b0756f38d4c0dcda72dbb3c32061ab99
     restart: unless-stopped
     command: ["redis-server", "--requirepass", "${REDIS_PASSWORD:?REDIS_PASSWORD must be set in .env}", "--save", "60", "1", "--appendonly", "yes"]
     environment:
