@@ -1,4 +1,3 @@
-
 # n8n-hardened-reference
 
 I build production automation infrastructure for clients who need their n8n instance treated like a real system, not a docker-compose tutorial. This repo is the reference deployment I bring to that work: security-hardened, legible, and one command to stand up.
