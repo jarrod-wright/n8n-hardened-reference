@@ -1,21 +1,32 @@
+
 # n8n-hardened-reference
 
-I build production automation infrastructure for clients who need their n8n instance treated like a real system, not a docker-compose tutorial. This repo is the reference deployment I bring to that work: security-hardened, one command to stand up, and — more importantly — a documented method for moving a client's live workflows onto it without downtime.
-
-The stack is the artifact. The delivery method is the actual service.
+I build production automation infrastructure for clients who need their n8n instance treated like a real system, not a docker-compose tutorial. This repo is the reference deployment I bring to that work: security-hardened, legible, and one command to stand up.
 
 > Status: hardened reference and template. Read the threat model and [SECURITY.md](SECURITY.md), then adapt it to your host and your workflows. Do not run it blind.
 
-## What I deliver
+## Scope and roadmap
 
-Standing up a hardened n8n stack is one skill. Moving a client's live automations onto it without breaking anything is a different one — and it's the part that actually matters to a business depending on those workflows.
+**What this repo covers today: the container and stack plane.** The n8n services, their network boundaries, TLS termination, secret handling, database privileges, capability drops and task-runner isolation — everything inside the Compose file and the reverse proxy in front of it. Every claim in the threat model below is about that plane, and is readable in the shipped configuration.
 
-- **Inventory and node-equivalence.** Every existing workflow, trigger and credential is mapped to its n8n equivalent before anything is touched.
-- **Parallel run.** The new stack runs alongside the existing automation. Workflows are validated against real inputs, with production side effects duplicated or disabled — never a cold cutover.
-- **Credential-repoint cutover.** Integrations are switched to the new instance in a defined order, each one verified, with the previous instance kept warm.
-- **Verification and rollback.** Health, TLS and hardening checks are scripted and re-runnable. Rollback is a repoint back to the warm instance, not a rebuild.
+**What it does not cover: the host and OS plane.** SSH policy, kernel and sysctl parameters, host firewall, package and patch posture, auditd, filesystem mount options, unattended upgrades. A hardened stack on an unhardened host is still an unhardened host. This repo makes no claim about the machine underneath it, and you should not read one into it.
 
-This repo is what "the new stack" looks like when I do that work.
+**What is being built.** A portable host-hardening assertion suite — CIS Level 1 Server for Ubuntu 24.04, with every exception publicly justified — that runs standalone against any fresh host, not only this fixture. It will publish here as executable assertions and a red/green baseline runner, so you can measure your own server rather than take my word for the posture of mine.
+
+**Why the split is what it is.** The assertions will be public; the automation that remediates what they find will not. The suite tells you, precisely and in your own environment, what is wrong. Fixing it at scale — the roles, the client tailoring, the migration runbooks — is the engagement. That is a stated position, not an omission: where the value lives in the work rather than the artifact, I publish the artifact generously. Detection is not remediation.
+
+## How I approach a migration
+
+Standing up a hardened stack is one skill. Moving a client's live automations onto it without breaking anything is a different one — and it's the part that actually matters to a business depending on those workflows.
+
+That work is an engagement, not a script in this repo. **None of the migration tooling described below ships here.** What I hold to:
+
+- **Inventory and node-equivalence first.** Every existing workflow, trigger and credential is mapped before anything is touched.
+- **Parallel run, never a cold cutover.** The new stack runs alongside the existing automation and is validated against real inputs, with production side effects duplicated or disabled.
+- **Ordered credential repoint.** Integrations move one at a time, each verified, with the previous instance kept warm.
+- **Rollback as a repoint, not a rebuild.** The old instance stays warm until the new one has earned the traffic.
+
+The repo gives you the target stack. The migration is the service.
 
 ## Why the hardening matters
 
