@@ -21,19 +21,24 @@
 # Image pinning: n8nio/runners is pinned to the sha256 digest validated by a
 # clean-room `make deploy-runners` run (see `make pin-digests`); must be bumped
 # in lockstep with the n8n image pin above.
+#
+# NOTE: N8N_RUNNERS_ENABLED is intentionally NOT set below. It is deprecated
+# upstream (n8n-io/n8n packages/cli/src/deprecation/deprecation.service.ts:
+# `{ envVar: 'N8N_RUNNERS_ENABLED', message: SAFE_TO_REMOVE }` - "Remove this
+# environment variable; it is no longer needed."), confirmed by live source
+# probe 2026-07-26 (VPSHR ADR-004). N8N_RUNNERS_MODE=external is sufficient to
+# enable the external-mode runners this overlay configures.
 # =============================================================================
 
 services:
   n8n:
     environment:
-      N8N_RUNNERS_ENABLED: "true"
       N8N_RUNNERS_MODE: external
       N8N_RUNNERS_BROKER_LISTEN_ADDRESS: 0.0.0.0
       N8N_RUNNERS_AUTH_TOKEN: "${N8N_RUNNERS_AUTH_TOKEN:?N8N_RUNNERS_AUTH_TOKEN must be set in .env}"
 
   n8n-worker:
     environment:
-      N8N_RUNNERS_ENABLED: "true"
       N8N_RUNNERS_MODE: external
       N8N_RUNNERS_BROKER_LISTEN_ADDRESS: 0.0.0.0
       N8N_RUNNERS_AUTH_TOKEN: "${N8N_RUNNERS_AUTH_TOKEN:?N8N_RUNNERS_AUTH_TOKEN must be set in .env}"
