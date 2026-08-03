@@ -1,8 +1,30 @@
 # n8n-hardened-reference
 
+**Container and stack plane.** The reference n8n deployment: network boundaries, TLS termination, file-based secrets, least-privilege database roles, dropped Linux capabilities, task-runner isolation, and images pinned to digests.
+
+**One service is reachable from outside.** Count them yourself, here or in your own stack:
+
+```bash
+grep -c "ports:" docker-compose.yml
+```
+
+Every default has its reasoning written next to it in [SECURITY.md](SECURITY.md), and the workflow and host planes link from the table below.
+
 I build production automation infrastructure for clients who need their n8n instance treated like a real system, not a docker-compose tutorial. This repo is the reference deployment I bring to that work: security-hardened, legible, and one command to stand up.
 
 > Status: hardened reference and template. Read the threat model and [SECURITY.md](SECURITY.md), then adapt it to your host and your workflows. Do not run it blind.
+
+## The three planes
+
+Self-hosting n8n means securing three different things, and they are not the same job. Most material treats them as one. This repository covers one of them, and says plainly which.
+
+| Plane | What it covers | Where it lives |
+|---|---|---|
+| **Workflow** | The automations themselves: authenticated ingress, idempotency, bounded retries, dead-lettering, model-output validation, liveness | [`n8n-workflow-hardening`](https://github.com/jarrod-wright/n8n-workflow-hardening) |
+| **Stack and container** ← *you are here* | Compose topology, reverse proxy and TLS termination, queue mode, secret delivery, capability drops, database privileges | **this repository** |
+| **Host and OS** | CIS Ubuntu 24.04 Level 1, Server profile: SSH policy, kernel and sysctl parameters, host firewall, auditd, patch posture | `vps-hardening-reference`, in development, not yet published |
+
+They compose without overlapping, and each is incomplete on its own. Hardened workflows on an unhardened host leave correct logic behind an open door. A locked-down host running unhardened workflows silently drops orders. A hardened stack on an unhardened host is still an unhardened host.
 
 ## Scope and roadmap
 
@@ -124,4 +146,10 @@ MIT. See [LICENSE](LICENSE).
 
 ---
 
-I build and deliver self-hosted automation infrastructure for clients. If that's what you need: **jarrod@jwmkwild.com**
+## Who built this
+
+Jarrod Wright, working as **The Certainty Engineer**. I work on the reliability of self-hosted n8n across three planes: the workflows, the container stack they run on, and the host underneath. These repositories are the reference implementations I work from.
+
+Engagements usually take one of three shapes: a fixed-scope audit of an existing deployment against named failure modes, a hardening pass that closes what the audit finds, or a migration of live automations onto a hardened stack. Findings come back as evidence you can re-run, in the same form as the tests here.
+
+Reachable at **jarr.wright@gmail.com**.
