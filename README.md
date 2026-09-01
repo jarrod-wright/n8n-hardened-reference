@@ -22,7 +22,7 @@ Self-hosting n8n means securing three different things, and they are not the sam
 |---|---|---|
 | **Workflow** | The automations themselves: authenticated ingress, idempotency, bounded retries, dead-lettering, model-output validation, liveness | [`n8n-workflow-hardening`](https://github.com/jarrod-wright/n8n-workflow-hardening) |
 | **Stack and container** ← *you are here* | Compose topology, reverse proxy and TLS termination, queue mode, secret delivery, capability drops, database privileges | **this repository** |
-| **Host and OS** | CIS Ubuntu 24.04 Level 1, Server profile: SSH policy, kernel and sysctl parameters, host firewall, auditd, patch posture | `vps-hardening-reference`, in development, not yet published |
+| **Host and OS** | CIS Ubuntu 24.04 Level 1, Server profile: SSH policy, kernel and sysctl parameters, host firewall, auditd, patch posture | [`vps-hardening-reference`](https://github.com/jarrod-wright/vps-hardening-reference), in development, not yet published |
 
 They compose without overlapping, and each is incomplete on its own. Hardened workflows on an unhardened host leave correct logic behind an open door. A locked-down host running unhardened workflows silently drops orders. A hardened stack on an unhardened host is still an unhardened host.
 
@@ -32,7 +32,7 @@ They compose without overlapping, and each is incomplete on its own. Hardened wo
 
 **What it does not cover: the host and OS plane.** SSH policy, kernel and sysctl parameters, host firewall, package and patch posture, auditd, filesystem mount options, unattended upgrades. A hardened stack on an unhardened host is still an unhardened host. This repo makes no claim about the machine underneath it, and you should not read one into it.
 
-**What is being built, and where.** A portable host-hardening assertion suite — CIS Level 1 Server for Ubuntu 24.04, with every exception publicly justified — that runs standalone against any fresh host, not only this fixture. It belongs to the host and OS plane, so it lives in a separate repository, [vps-hardening-reference](https://github.com/jarrod-wright/vps-hardening-reference), rather than in this one. **That repository is not yet populated — the suite is still in development and nothing has shipped there.** When it ships it will carry executable assertions and a red/green baseline runner, so you can measure your own server rather than take my word for the posture of mine.
+**What is being built, and where.** A portable host-hardening assertion suite — CIS Level 1 Server for Ubuntu 24.04, with every exception publicly justified — that runs standalone against any fresh host, not only this fixture. It belongs to the host and OS plane, so it lives in a separate repository, [vps-hardening-reference](https://github.com/jarrod-wright/vps-hardening-reference), rather than in this one. **That repository carries its scope and status today — the suite is still in development and no assertions have shipped there yet.** When it ships it will carry executable assertions and a red/green baseline runner, so you can measure your own server rather than take my word for the posture of mine.
 
 **Why the split is what it is.** The assertions will be public; the automation that remediates what they find will not. The suite tells you, precisely and in your own environment, what is wrong. Fixing it at scale — the roles, the client tailoring, the migration runbooks — is the engagement. That is a stated position, not an omission: where the value lives in the work rather than the artifact, I publish the artifact generously. Detection is not remediation.
 
@@ -152,4 +152,9 @@ Jarrod Wright, working as **The Certainty Engineer**. I work on the reliability 
 
 Engagements usually take one of three shapes: a fixed-scope audit of an existing deployment against named failure modes, a hardening pass that closes what the audit finds, or a migration of live automations onto a hardened stack. Findings come back as evidence you can re-run, in the same form as the tests here.
 
-Reachable at **jarr.wright@gmail.com**.
+**If that is close to what you need, email jarr.wright@gmail.com.** Tell me what you are
+running and what is breaking, and I will tell you straight whether I can help and what it
+would take. If you would rather ask in public first, open an issue on this repository.
+
+*If you found me through a freelancing platform, please keep the conversation there until a
+contract is in place.*
