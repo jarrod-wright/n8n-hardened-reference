@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Report a security vulnerability
+    url: https://github.com/jarrod-wright/n8n-hardened-reference/security/advisories/new
+    about: Please report security issues privately, not as a public issue. See SECURITY.md.
+  - name: The other two planes
+    url: https://github.com/jarrod-wright
+    about: Workflow and host hardening live in separate repositories. Index and contact details here.
