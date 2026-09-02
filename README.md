@@ -22,7 +22,7 @@ Self-hosting n8n means securing three different things, and they are not the sam
 |---|---|---|
 | **Workflow** | The automations themselves: authenticated ingress, idempotency, bounded retries, dead-lettering, model-output validation, liveness | [`n8n-workflow-hardening`](https://github.com/jarrod-wright/n8n-workflow-hardening) |
 | **Stack and container** ← *you are here* | Compose topology, reverse proxy and TLS termination, queue mode, secret delivery, capability drops, database privileges | **this repository** |
-| **Host and OS** | CIS Ubuntu 24.04 Level 1, Server profile: SSH policy, kernel and sysctl parameters, host firewall, auditd, patch posture | [`vps-hardening-reference`](https://github.com/jarrod-wright/vps-hardening-reference), in development, not yet published |
+| **Host and OS** | CIS Ubuntu 24.04 Level 1, Server profile: SSH policy, kernel and sysctl parameters, host firewall, auditd, patch posture | [`vps-hardening-reference`](https://github.com/jarrod-wright/vps-hardening-reference) — scope and status published, assertion suite in development |
 
 They compose without overlapping, and each is incomplete on its own. Hardened workflows on an unhardened host leave correct logic behind an open door. A locked-down host running unhardened workflows silently drops orders. A hardened stack on an unhardened host is still an unhardened host.
 
