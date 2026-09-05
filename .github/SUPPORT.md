@@ -13,5 +13,5 @@ security advisory feature on this repository. [SECURITY.md](../SECURITY.md) has 
 migration of live automations onto a hardened stack — email **jarr.wright@gmail.com**. Tell
 me what you are running and what is breaking.
 
-*If you found this repository through a freelancing platform, please keep the conversation
+*If you found me through a freelancing platform, please keep the conversation
 there until a contract is in place.*
