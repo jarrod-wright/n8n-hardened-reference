@@ -10,7 +10,7 @@ grep -c "ports:" docker-compose.yml
 
 Every default has its reasoning written next to it in [SECURITY.md](SECURITY.md), and the workflow and host planes link from the table below.
 
-I build production automation infrastructure for clients who need their n8n instance treated like a real system, not a docker-compose tutorial. This repo is the reference deployment I bring to that work: security-hardened, legible, and one command to stand up.
+I work on production n8n infrastructure for teams who need their instance treated like a real system, not a docker-compose tutorial. This repo is the reference deployment I bring to that work: security-hardened, legible, and one command to stand up.
 
 > Status: hardened reference and template. Read the threat model and [SECURITY.md](SECURITY.md), then adapt it to your host and your workflows. Do not run it blind.
 
@@ -137,7 +137,7 @@ Restores require the same encryption key that was in place when the backup was t
 
 ## What this is, and is not
 
-- It is a hardened, legible starting point that I use in client delivery, and that you're welcome to adapt to your own host and workflows.
+- It is a hardened, legible starting point that I work from, and that you're welcome to adapt to your own host and workflows.
 - It is not a managed service, a one-click appliance, or a reason to skip reading SECURITY.md.
 
 ## License
