@@ -8,6 +8,10 @@
 # fail proves nothing, so every assertion in verify has a case here.
 #
 # Needs the same tools as verify: bash, the docker compose v2 CLI, jq, openssl.
+#
+# The awk and sed programs below are single-quoted on purpose: their $ signs
+# belong to awk, sed and Compose, not to the shell.
+# shellcheck disable=SC2016
 set -euo pipefail
 
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

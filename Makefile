@@ -2,7 +2,7 @@
 SHELL := /usr/bin/env bash
 COMPOSE := docker compose
 .DEFAULT_GOAL := help
-.PHONY: help init-secrets deploy deploy-runners up down restart ps logs backup restore pin-digests verify-selftest
+.PHONY: help init-secrets deploy deploy-runners up down restart ps logs backup restore pin-digests verify verify-selftest
 
 help: ## Show available targets
 	@grep -hE '^[a-zA-Z_-]+:.*## ' $(MAKEFILE_LIST) | sed 's/:.*## /  ->  /' | sort
@@ -43,6 +43,9 @@ restore: ## Restore a backup: make restore SRC=backups/<timestamp>
 
 pin-digests: ## Print image sha256 digests to pin
 	@bash scripts/pin-digests.sh
+
+verify: ## Check the hardening posture on the rendered Compose config (base and runners)
+	@bash scripts/verify.sh
 
 verify-selftest: ## Prove verify fails on deliberately broken copies of the stack
 	@bash scripts/verify-selftest.sh
