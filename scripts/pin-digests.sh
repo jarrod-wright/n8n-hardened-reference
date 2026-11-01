@@ -6,10 +6,10 @@ cd "$(dirname "${BASH_SOURCE[0]}")/.."
 
 IMAGES=(
   caddy:2-alpine
-  docker.n8n.io/n8nio/n8n:2.29.10
+  docker.n8n.io/n8nio/n8n:2.45.7
   postgres:16-alpine
   redis:7-alpine
-  n8nio/runners:2.29.10
+  n8nio/runners:2.45.7
 )
 
 for img in "${IMAGES[@]}"; do

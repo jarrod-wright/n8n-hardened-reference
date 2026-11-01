@@ -116,7 +116,7 @@ services:
       - proxy
 
   n8n:
-    image: docker.n8n.io/n8nio/n8n:2.29.10@sha256:9cb60554716a0ab11a966e79ed65171e1bbf00b6d262ba12aa119bba22eb6000
+    image: docker.n8n.io/n8nio/n8n:2.45.7@sha256:9a8d8dcea75667496695d7810d7e1fe018a65efb36cc499d347f3931b3957b5d
     restart: unless-stopped
     depends_on:
       postgres:
@@ -152,7 +152,7 @@ services:
       - data
 
   n8n-worker:
-    image: docker.n8n.io/n8nio/n8n:2.29.10@sha256:9cb60554716a0ab11a966e79ed65171e1bbf00b6d262ba12aa119bba22eb6000
+    image: docker.n8n.io/n8nio/n8n:2.45.7@sha256:9a8d8dcea75667496695d7810d7e1fe018a65efb36cc499d347f3931b3957b5d
     restart: unless-stopped
     command: worker
     depends_on:
