@@ -1,0 +1,64 @@
+name: verify
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: verify (base and runners)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Tool versions
+        run: docker compose version && jq --version
+      - name: make verify
+        run: make verify
+
+  verify-selftest:
+    name: verify-selftest
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: make verify-selftest
+        run: make verify-selftest
+
+  smoke:
+    name: smoke (${{ matrix.config }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        config: [base, runners]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Pinned n8n and runners tags resolve to the pinned digests
+        run: |
+          grep -hoE 'image: [^ ]*n8nio/(n8n|runners):[0-9][^@ ]*@sha256:[0-9a-f]{64}' \
+            docker-compose.yml docker-compose.runners.yml | sort -u |
+          while read -r _ ref; do
+            want="${ref##*@}"
+            got="$(docker buildx imagetools inspect "${ref%@*}" --format '{{json .Manifest}}' | jq -r .digest)"
+            echo "${ref%@*} -> $got"
+            [ "$got" = "$want" ] || { echo "::error::${ref%@*} resolves to $got, pinned $want"; exit 1; }
+          done
+      - name: make smoke
+        env:
+          CONFIG: ${{ matrix.config }}
+        run: make smoke CONFIG="$CONFIG"
