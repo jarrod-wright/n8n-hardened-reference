@@ -146,15 +146,24 @@ MIT. See [LICENSE](LICENSE).
 
 ---
 
+## What this proves
+
+Count the published ports and you get one. The threat model pairs each risk with its control. NIST-800-190-APPLICABILITY.md maps those controls to the container-security tiers of NIST SP 800-190, and it names the host tier as not yet covered rather than implying otherwise.
+
+This is the stack I deploy for clients who self-host n8n, and the baseline I check an existing instance against during a diagnosis.
+
 ## Who built this
 
-Jarrod Wright, working as **The Certainty Engineer**. I work on the reliability of self-hosted n8n across three planes: the workflows, the container stack they run on, and the host underneath. These repositories are the reference implementations I work from.
+Jarrod Wright, working as **The Certainty Engineer**. I step in when a production n8n workflow or AI agent breaks, working across three planes: the workflows, the container stack they run on, and the host underneath. These repositories are the reference implementations I work from.
 
-Engagements usually take one of three shapes: a fixed-scope audit of an existing deployment against named failure modes, a hardening pass that closes what the audit finds, or a migration of live automations onto a hardened stack. Findings come back as evidence you can re-run, in the same form as the tests here.
+Every engagement follows one sequence. Triage is free: what broke, and whether I'm the right person.
 
-**If that is close to what you need, email jarr.wright@gmail.com.** Tell me what you are
-running and what is breaking, and I will tell you straight whether I can help and what it
-would take. If you would rather ask in public first, open an issue on this repository.
+Then comes a paid, written diagnosis, where every root cause is backed by evidence and the report names causes, never people.
 
-*If you found me through a freelancing platform, please keep the conversation there until a
-contract is in place.*
+No repair starts before that. It's proven against a test that reproduces the failure, and handed back with a runbook so you can run it without me. The method follows Google SRE incident practice, ITIL 4 change control and NIST SP 800-61r3 for security incidents.
+
+**If that is close to what you need, email jarr.wright@gmail.com.** Tell me what you are running and what is breaking. I reply within 24 hours, and I'll tell you straight whether I can help and what the first step costs.
+
+If you would rather ask in public first, open an issue on this repository.
+
+*If you found me through a freelancing platform, please keep the conversation there until a contract is in place.*
