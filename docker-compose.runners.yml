@@ -12,11 +12,11 @@
 #   https://docs.n8n.io/deploy/host-n8n/configure-n8n/set-up-task-runners
 #
 # Requirements (per docs):
-#   - n8nio/runners image version MUST match the n8nio/n8n version (2.45.7).
+#   - n8nio/runners image version MUST match the n8nio/n8n version (2.46.6).
 #   - In queue mode, each broker (main + each worker) needs its OWN runner sidecar.
 #   - The broker listens on port 5679; runners connect via N8N_RUNNERS_TASK_BROKER_URI.
 #   - N8N_RUNNERS_AUTH_TOKEN is required (fail-closed) - shared secret.
-#   - Confirm an arm64 manifest for n8nio/runners:2.45.7 if deploying on Arm.
+#   - Confirm an arm64 manifest for n8nio/runners:2.46.6 if deploying on Arm.
 #
 # Image pinning: n8nio/runners is pinned to the sha256 digest validated by a
 # clean-room `make deploy-runners` run (see `make pin-digests`); must be bumped
@@ -44,7 +44,7 @@ services:
       N8N_RUNNERS_AUTH_TOKEN: "${N8N_RUNNERS_AUTH_TOKEN:?N8N_RUNNERS_AUTH_TOKEN must be set in .env}"
 
   n8n-runner:
-    image: n8nio/runners:2.45.7@sha256:2f07088829b6a1df2b6a84746bb8b32c1eaef270315fb5466aa01b1045e9b300
+    image: n8nio/runners:2.46.6@sha256:b1fe87a59b712a03e5a4fbb46a18ea5ca9487add602f8749941a69f4ab322612
     restart: unless-stopped
     depends_on:
       n8n:
@@ -69,7 +69,7 @@ services:
       - backend
 
   n8n-worker-runner:
-    image: n8nio/runners:2.45.7@sha256:2f07088829b6a1df2b6a84746bb8b32c1eaef270315fb5466aa01b1045e9b300
+    image: n8nio/runners:2.46.6@sha256:b1fe87a59b712a03e5a4fbb46a18ea5ca9487add602f8749941a69f4ab322612
     restart: unless-stopped
     depends_on:
       n8n-worker:
