@@ -126,6 +126,15 @@ The security posture is documented, not implied.
 - [hardening-checklist.md](hardening-checklist.md): the official n8n production checklist, mapped to exactly where each item is applied in this repo.
 - [SECURITY.md](SECURITY.md): the reasoning behind the container, network, secret and task-runner choices, and how to report an issue.
 
+Prove it yourself, no host or DNS needed:
+
+```bash
+make mutation-check   # five deliberate regressions; verify must catch every one
+make boot-caddy      # boots the full stack, Caddy signing with its internal CA, and serves n8n over HTTPS
+```
+
+Both run in CI on every push (the mutation check also carries a positive control: the clean stack stays green).
+
 ## Backup and restore
 
 ```bash
@@ -150,7 +159,10 @@ MIT. See [LICENSE](LICENSE).
 
 Count the published ports and you get one. The threat model pairs each risk with its control. NIST-800-190-APPLICABILITY.md maps those controls to the container-security tiers of NIST SP 800-190, and it names the host tier as not yet covered rather than implying otherwise.
 
+CI runs `make verify` over the rendered compose JSON in both configurations, boots the full stack with Caddy on an internally-signed certificate and serves n8n over HTTPS, and re-applies five deliberate regressions that `verify` must catch. Every claim above is one command away from being re-run, on your machine or in the CI log.
+
 This is the stack I deploy for clients who self-host n8n, and the baseline I check an existing instance against during a diagnosis.
+When the stack is down, every workflow it carries stops, including any that move inbound leads.
 
 ## Who built this
 
@@ -161,6 +173,8 @@ Every engagement follows one sequence. Triage is free: what broke, and whether I
 Then comes a paid, written diagnosis, where every root cause is backed by evidence and the report names causes, never people.
 
 No repair starts before that. It's proven against a test that reproduces the failure, and handed back with a runbook so you can run it without me. The method follows Google SRE incident practice, ITIL 4 change control and NIST SP 800-61r3 for security incidents.
+
+Away from break-fix work, I build inbound-aware GTM systems for SaaS teams whose inbound runs on automations. The work covers speed-to-lead with a system SLA, dormant-pipeline recycling from your own systems, and pipeline reporting. That work starts the same way, with a written diagnosis.
 
 **If that is close to what you need, email jarr.wright@gmail.com.** Tell me what you are running and what is breaking. I reply within 24 hours, and I'll tell you straight whether I can help and what the first step costs.
 

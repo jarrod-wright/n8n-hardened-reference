@@ -36,6 +36,28 @@ jobs:
       - name: make verify-selftest
         run: make verify-selftest
 
+  boot-caddy:
+    name: boot (full stack, Caddy tls internal)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: make boot-caddy
+        run: make boot-caddy
+
+  mutation-check:
+    name: mutation check (verify must catch regressions)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: make mutation-check
+        run: make mutation-check
+
   smoke:
     name: smoke (${{ matrix.config }})
     runs-on: ubuntu-latest
